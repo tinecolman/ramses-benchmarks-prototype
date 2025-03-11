@@ -239,7 +239,7 @@ def eurohpc_dashboard(test_name, statistic='time', reso_strong=1024, timescale='
 
     for cluster, ax in zip(euroHPC_systems, axes.flatten()):
         # load the data and process
-        benchmark_file = 'results/timings_'+cluster+'_'+test_name+'.txt'
+        benchmark_file = 'data/timings_'+cluster+'_'+test_name+'.txt'
         data = load_data(benchmark_file)
         data = filter_data(data, timescale)
 
