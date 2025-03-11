@@ -292,9 +292,9 @@ if __name__ == '__main__':
 
     #make_files()
 
-    #eurohpc_dashboard('sedov', statistic='time',  timescale='short')
+    eurohpc_dashboard('sedov', statistic='time',  timescale='short')
     #eurohpc_dashboard('sedov', statistic='time',  timescale='long')
-    eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024, timescale='short')
+    #eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024, timescale='short')
     #eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024)
 
     # maybe cool to have the combo weak-strong scaling plot
