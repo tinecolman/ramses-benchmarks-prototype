@@ -1,4 +1,5 @@
-# ramses-benchmarks-prototype
+# Cosmo benchmark
 
-Evolution of the execution time for the sedov test on the EuroHPC systems
-![Benchmark results](eurohpc_dashboard_time_sedov.png)
+![Cosmo benchmark execution time](eurohpc_dashboard_time_cosmo.png)
+
+![Cosmo benchmark strong scaling](eurohpc_dashboard_strong_cosmo.png)
