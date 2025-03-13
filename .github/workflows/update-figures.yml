@@ -5,7 +5,7 @@ on:
     branches:
       - main  # Run when new commits are pushed to main
     paths-ignore:
-      - 'eurohpc_dashboard_time_sedov.png'  # Ignore changes to the figure
+      - 'eurohpc_dashboard*.png'  # Ignore changes to the figure
   #schedule:
   #  - cron: '0 0 * * *'  # Runs daily at midnight (adjust as needed)
   workflow_dispatch:  # Allows manual triggering from the GitHub UI
@@ -32,12 +32,17 @@ jobs:
       - name: Run benchmark analysis
         run: python analyse_benchmark.py
 
-      - name: Commit and push updated figure if there are changes
+      - name: Commit and push updated figures if there are changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git diff --quiet eurohpc_dashboard_time_sedov.png || (
-            git add eurohpc_dashboard_time_sedov.png
-            git commit -m "Automated update of benchmark plot"
+
+          # Check for changes in any eurohpc_dashboard_*.png file
+          if git diff --quiet -- "eurohpc_dashboard_*.png"; then
+            echo "No changes detected in figures."
+          else
+            git add eurohpc_dashboard_*.png
+            git commit -m "Automated update of benchmark plots"
             git push origin main
-          )
+          fi
+
