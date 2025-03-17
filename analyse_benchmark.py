@@ -262,14 +262,14 @@ def eurohpc_dashboard(test_name, statistic='time', reso_strong=1024, timescale='
             plot_strong_scaling(data_f, reso_strong, axes=ax,omp=omp)
 
         # filter data to keep
-        omp=4
-        data_f = filter_data(data, timescale,omp=omp)
-        if statistic=='time':
-            plot_execution_time(data_f, axes=ax,omp=omp, facecolor='none')
-            ax.scatter([],[],color='black',label='MPI')
-            ax.scatter([],[],color='black',facecolor='none',label='OpenMP '+str(omp))
-        elif statistic=='strong':
-            plot_strong_scaling(data_f, reso_strong, axes=ax,omp=omp)
+        #omp=4
+        #data_f = filter_data(data, timescale,omp=omp)
+        #if statistic=='time':
+        #    plot_execution_time(data_f, axes=ax,omp=omp, facecolor='none')
+        #    ax.scatter([],[],color='black',label='MPI')
+        #    ax.scatter([],[],color='black',facecolor='none',label='OpenMP '+str(omp))
+        #elif statistic=='strong':
+        #    plot_strong_scaling(data_f, reso_strong, axes=ax,omp=omp)
 
         ax.set_title(cluster)
 
