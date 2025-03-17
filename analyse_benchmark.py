@@ -171,6 +171,8 @@ def plot_strong_scaling(data, reso_strong, axes=None, omp=0):
     max_nodes = 1
     for entry, c in zip(strong_scaling,colorVals):
         nodes = strong_scaling[entry][0]
+        if len(nodes)==0:
+            continue
         max_nodes = max(max_nodes, max(nodes))
         times = strong_scaling[entry][1]
         speedups = times[0]*nodes[0]/times
