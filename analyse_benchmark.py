@@ -78,10 +78,15 @@ def filter_data(data, timescale='long', omp=0):
             merged_data[new_entry] = {}
         for subentry in data[entry]:
             if int(subentry.split()[2])==omp:
-                if subentry not in merged_data[new_entry]:
+                if (subentry not in merged_data[new_entry]):
                     merged_data[new_entry][subentry] = []
                 # join lists
                 merged_data[new_entry][subentry] += data[entry][subentry]
+
+    # remove empty entries
+    for entry in merged_data:
+        if len(merged_data[entry])==0:
+            merged_data.pop(entry)
 
     return merged_data
 
@@ -153,6 +158,9 @@ def plot_strong_scaling(data, reso_strong, axes=None, omp=0):
 
     #gather data for plotting
     strong_scaling = gather_strong_scaling_data(data, reso_strong,omp)
+    if not bool(strong_scaling):
+        # don't do anything if there is no data
+        return
 
     # create colors
     cmap = plt.get_cmap('gray_r')
@@ -208,7 +216,6 @@ def plot_execution_time(data, axes=None, omp=0, **kwargs):
     colorVals = {}
     for val in nodes_strong:
         colorVals[val] = cmap(cNorm(val))
-    print(colorVals)
 
     # plot
     save_plot=False
@@ -258,9 +265,9 @@ def eurohpc_dashboard(test_name, statistic='time', reso_strong=1024, timescale='
         omp=4
         data_f = filter_data(data, timescale,omp=omp)
         if statistic=='time':
-            plot_execution_time(data_f, axes=ax,omp=omp, edgecolor='none')
-            ax.scatter([],[],color='black',label='MPI only')
-            ax.scatter([],[],color='black',edgecolor='none',label='MPI + OpenMP '+str(omp))
+            plot_execution_time(data_f, axes=ax,omp=omp, facecolor='none')
+            ax.scatter([],[],color='black',label='MPI')
+            ax.scatter([],[],color='black',facecolor='none',label='OpenMP '+str(omp))
         elif statistic=='strong':
             plot_strong_scaling(data_f, reso_strong, axes=ax,omp=omp)
 
