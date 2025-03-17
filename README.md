@@ -2,6 +2,8 @@
 
 ![Sedov benchmark execution time](eurohpc_dashboard_time_sedov.png)
 
+![Sedov benchmark strong scaling](eurohpc_dashboard_strong_sedov.png)
+
 # Cosmo benchmark
 
 ![Cosmo benchmark execution time](eurohpc_dashboard_time_cosmo.png)

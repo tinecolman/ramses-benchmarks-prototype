@@ -194,7 +194,7 @@ def plot_strong_scaling(data, reso_strong, axes=None, omp=0):
 
 
 ''' Plot of the evolution of execution time for different number of nodes '''
-def plot_execution_time(data, axes=None, omp=0):
+def plot_execution_time(data, axes=None, omp=0, **kwargs):
 
     #gather data for plotting
     dates, times, errors_min, errors_max = gather_execution_time_data(data,omp)
@@ -217,7 +217,7 @@ def plot_execution_time(data, axes=None, omp=0):
         axes.errorbar(dates[n], times[n], yerr=[errors_min[n],errors_max[n]], fmt='o', markersize=5,
                      label=str(n)+' nodes', color=colorVals[n])
         # plot a line from the last point to make comparison easier
-        axes.plot([dates[n][0],dates[n][-1]], [times[n][-1],times[n][-1]], ls=':', lw=1.3, color=colorVals[n])
+        axes.plot([dates[n][0],dates[n][-1]], [times[n][-1],times[n][-1]], ls=':', lw=1.3, color=colorVals[n], **kwargs)
 
     if save_plot:
         axes.set_ylabel('execution time [s]')
@@ -248,9 +248,20 @@ def eurohpc_dashboard(test_name, statistic='time', reso_strong=1024, timescale='
         data_f = filter_data(data, timescale,omp=omp)
 
         if statistic=='time':
-            plot_execution_time(data_f, axes=ax,omp=0)
+            plot_execution_time(data_f, axes=ax,omp=omp)
         elif statistic=='strong':
             plot_strong_scaling(data_f, reso_strong, axes=ax,omp=omp)
+
+        # filter data to keep
+        omp=4
+        data_f = filter_data(data, timescale,omp=omp)
+        if statistic=='time':
+            plot_execution_time(data_f, axes=ax,omp=omp, edgecolor='none')
+            ax.scatter([],[],color='black',label='MPI only')
+            ax.scatter([],[],color='black',edgecolor='none',label='MPI + OpenMP '+str(omp))
+        elif statistic=='strong':
+            plot_strong_scaling(data_f, reso_strong, axes=ax,omp=omp)
+
         ax.set_title(cluster)
 
     # fanciness
@@ -304,5 +315,6 @@ if __name__ == '__main__':
     # maybe cool to have the combo weak-strong scaling plot
 
     eurohpc_dashboard('sedov', statistic='time',  timescale='short')
+    eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024, timescale='short')
     eurohpc_dashboard('cosmo', statistic='time',  timescale='short')
     eurohpc_dashboard('cosmo', statistic='strong', reso_strong=1024, timescale='short')
