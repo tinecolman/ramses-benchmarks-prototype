@@ -104,7 +104,7 @@ def add_data(data, benchmark_dir):
     # load and store timings for all configurations
     for (nnodes, reso, omp) in configs:
         # get times from log
-        subdir_name = 'nodes'+str(nnodes)+'_reso'+str(reso)+'_omp'+str(reso)
+        subdir_name = 'nodes'+str(nnodes)+'_reso'+str(reso)+'_omp'+str(omp)
         total_times = get_timings_from_log(benchmark_dir+'/'+subdir_name)
         # add to dict, overwrite if already exist
         subentry_name = str(reso)+' '+str(nnodes)+' '+str(omp) #reso nodes omp

@@ -54,7 +54,7 @@ nodes_strong = [1,2,4,8,16,32,64]
 #######################################################################
 
 ''' Remove or combine data entries '''
-def filter_data(data, timescale='long'):
+def filter_data(data, timescale='long', omp=0):
     merged_data = OrderedDict()
 
     for entry in data:
@@ -77,10 +77,11 @@ def filter_data(data, timescale='long'):
         if new_entry not in merged_data:
             merged_data[new_entry] = {}
         for subentry in data[entry]:
-            if subentry not in merged_data[new_entry]:
-                merged_data[new_entry][subentry] = []
-            # join lists
-            merged_data[new_entry][subentry] += data[entry][subentry]
+            if int(subentry.split()[2])==omp:
+                if subentry not in merged_data[new_entry]:
+                    merged_data[new_entry][subentry] = []
+                # join lists
+                merged_data[new_entry][subentry] += data[entry][subentry]
 
     return merged_data
 
@@ -97,7 +98,7 @@ def process_times(total_time):
         error_max=0
     return time, error_min, error_max
 
-def gather_execution_time_data(data):
+def gather_execution_time_data(data,omp):
     # make an entry for each possible number of nodes
     nodes_strong = range(1,512)
     dates = OrderedDict({n:[] for n in nodes_strong})
@@ -108,7 +109,7 @@ def gather_execution_time_data(data):
     # gather available data
     for entry in data:
         for n in nodes_strong:
-            subentry = str(reso_strong)+' '+str(n)
+            subentry = str(reso_strong)+' '+str(n)+' '+str(omp)
             if subentry in data[entry]:
                 time, error_min, error_max = process_times(data[entry][subentry])
                 dates[n].append(entry)
@@ -126,7 +127,7 @@ def gather_execution_time_data(data):
 
     return dates, times, errors_min, errors_max
 
-def gather_strong_scaling_data(data, reso_strong):
+def gather_strong_scaling_data(data, reso_strong,omp):
     # make an entry for each possible number of nodes
     nodes_strong = range(1,512)
     dates = OrderedDict({n:[] for n in nodes_strong})
@@ -139,7 +140,7 @@ def gather_strong_scaling_data(data, reso_strong):
     for entry in data:
         strong_scaling[entry] = ([],[])
         for n in nodes_strong:
-            subentry = str(reso_strong)+' '+str(n)
+            subentry = str(reso_strong)+' '+str(n)+' '+str(omp)
             if subentry in data[entry]:
                 time, error_min, error_max = process_times(data[entry][subentry])
                 strong_scaling[entry][0].append(n)
@@ -148,10 +149,10 @@ def gather_strong_scaling_data(data, reso_strong):
     return strong_scaling
 
 
-def plot_strong_scaling(data, reso_strong, axes=None):
+def plot_strong_scaling(data, reso_strong, axes=None, omp=0):
 
     #gather data for plotting
-    strong_scaling = gather_strong_scaling_data(data, reso_strong)
+    strong_scaling = gather_strong_scaling_data(data, reso_strong,omp)
 
     # create colors
     cmap = plt.get_cmap('gray_r')
@@ -193,10 +194,10 @@ def plot_strong_scaling(data, reso_strong, axes=None):
 
 
 ''' Plot of the evolution of execution time for different number of nodes '''
-def plot_execution_time(data, axes=None):
+def plot_execution_time(data, axes=None, omp=0):
 
     #gather data for plotting
-    dates, times, errors_min, errors_max = gather_execution_time_data(data)
+    dates, times, errors_min, errors_max = gather_execution_time_data(data,omp)
     nodes_strong = [1,2,4,8,16,32,64]#dates.keys()
 
     # create colors
@@ -241,12 +242,15 @@ def eurohpc_dashboard(test_name, statistic='time', reso_strong=1024, timescale='
         # load the data and process
         benchmark_file = 'data_openmp/timings_'+cluster+'_'+test_name+'.txt'
         data = load_data(benchmark_file)
-        data = filter_data(data, timescale)
+
+        # filter data to keep
+        omp=0
+        data_f = filter_data(data, timescale,omp=omp)
 
         if statistic=='time':
-            plot_execution_time(data, axes=ax)
+            plot_execution_time(data_f, axes=ax,omp=0)
         elif statistic=='strong':
-            plot_strong_scaling(data, reso_strong, axes=ax)
+            plot_strong_scaling(data_f, reso_strong, axes=ax,omp=omp)
         ax.set_title(cluster)
 
     # fanciness
