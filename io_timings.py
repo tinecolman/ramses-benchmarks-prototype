@@ -27,13 +27,15 @@ def get_configs(benchmark_dir):
         name = os.path.join(benchmark_dir, item)
         if os.path.isdir(name) and item.startswith('nodes'):
             # get number of nodes and resolution of config
-            [nodes, reso] = item.split('_')
+            [nodes, reso, omp] = item.split('_')
             nodes = int(nodes[5:])
             reso = reso[4:]
-            configs.append((nodes,reso))
-    #sort according to accending resolution and number of nodes
+            omp = omp[3:]
+            configs.append((nodes,reso,omp))
+    #sort according to accending number of omp threads, resolution, number of nodes
     configs = sorted(configs, key=lambda tup: tup[0])
     configs = sorted(configs, key=lambda tup: tup[1])
+    configs = sorted(configs, key=lambda tup: tup[2])
     return configs
 
 ''' Use grep to get the times from all logfiles in a directory '''
@@ -46,6 +48,7 @@ def get_timings_from_log(run_dir):
 ''' load previous data from file into dicts format '''
 def load_data(benchmark_file):
     data = OrderedDict()
+    n_info=5 #number of columns with benchmark info before actual timings
 
     try: 
         with open(benchmark_file, 'r') as f:
@@ -58,13 +61,13 @@ def load_data(benchmark_file):
                     data[entry_name] = {}
 
                 # cast times to float
-                if (currentline[4]=='[]'):
+                if (currentline[n_info]=='[]'):
                     items = []
                 else:
-                    items = [float(i) for i in (currentline[4][1:-2]).strip().split()]
+                    items = [float(i) for i in (currentline[n_info][1:-2]).strip().split()]
 
                 # add data to entry
-                subentry_name = currentline[2]+' '+currentline[3] #reso nodes
+                subentry_name = currentline[2]+' '+currentline[3]+' '+currentline[4] #reso nodes threads
                 data[entry_name][subentry_name] = items
     except:
         print(benchmark_file,"not found. No data to load.")
@@ -79,9 +82,9 @@ def write_data(benchmark_file, data):
             date = entry[-10:]
             commit = entry[:8]
             for subentry in data[entry]:
-                [reso, nodes] = subentry.split()
+                [reso, nodes, omp] = subentry.split()
                 timings_string = str(data[entry][subentry]).replace(',','')
-                f.write(f"{date},{commit},{reso},{nodes},{timings_string}\n")
+                f.write(f"{date},{commit},{reso},{nodes},{omp},{timings_string}\n")
 
     print("Updated", benchmark_file)
 
@@ -99,12 +102,12 @@ def add_data(data, benchmark_dir):
     configs = get_configs(benchmark_dir)
 
     # load and store timings for all configurations
-    for (nnodes, reso) in configs:
+    for (nnodes, reso, omp) in configs:
         # get times from log
-        subdir_name = 'nodes'+str(nnodes)+'_reso'+str(reso)
+        subdir_name = 'nodes'+str(nnodes)+'_reso'+str(reso)+'_omp'+str(reso)
         total_times = get_timings_from_log(benchmark_dir+'/'+subdir_name)
         # add to dict, overwrite if already exist
-        subentry_name = str(reso)+' '+str(nnodes) #reso nodes
+        subentry_name = str(reso)+' '+str(nnodes)+' '+str(omp) #reso nodes omp
         data[entry_name][subentry_name] = total_times
 
     #print('Loaded data for benchmark', commit, date)
@@ -112,8 +115,8 @@ def add_data(data, benchmark_dir):
 
 
 ''' Update the timings with a new benchmark '''
-def update_timings(cluster, benchmark_dir, test_name):
-    benchmark_file = 'data/timings_'+cluster+'_'+test_name+'.txt'
+def update_timings(cluster, benchmark_dir, test_name, branch):
+    benchmark_file = 'data_'+branch+'/timings_'+cluster+'_'+test_name+'.txt'
     # load existing data
     data = load_data(benchmark_file)
     # add/update benchmark entry
@@ -129,6 +132,7 @@ if __name__ == '__main__':
     parser.add_argument('cluster', help="HPC system on which the benchmark has been run")
     parser.add_argument('benchmark_dir', help="directory where the benchmarks have been executed")
     parser.add_argument('test', help="name of the test case")
+    parser.add_argument('branch', help="branch of the tested commit")
     args = parser.parse_args()
 
-    update_timings(args.cluster, args.benchmark_dir, args.test)
+    update_timings(args.cluster, args.benchmark_dir, args.test, args.branch)
