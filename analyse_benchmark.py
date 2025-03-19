@@ -72,7 +72,7 @@ def filter_data(data, timescale='long', omp=0):
         else:
             #Take together timings executed on different day of the same month, for the same commit
             # remove day from entry date
-            new_entry = entry#[:-3]
+            new_entry = entry[:-3]
 
         if new_entry not in merged_data:
             merged_data[new_entry] = {}
@@ -84,7 +84,8 @@ def filter_data(data, timescale='long', omp=0):
                 merged_data[new_entry][subentry] += data[entry][subentry]
 
     # remove empty entries
-    for entry in merged_data:
+    keys = list(merged_data.keys())
+    for entry in keys:
         if len(merged_data[entry])==0:
             merged_data.pop(entry)
 
@@ -168,6 +169,7 @@ def plot_strong_scaling(data, reso_strong, axes=None, omp=0):
     colorVals =  []
     for val in range(len(strong_scaling)):
         colorVals.append(cmap(cNorm(val)))
+    colorVals.reverse()
 
     # create figure if none is given
     save_plot=False
@@ -183,12 +185,14 @@ def plot_strong_scaling(data, reso_strong, axes=None, omp=0):
             continue
         max_nodes = max(max_nodes, max(nodes))
         times = strong_scaling[entry][1]
-        speedups = times[0]*nodes[0]/times
-        axes.plot(nodes, speedups, color=c, label=entry)
+        if times[0] != np.nan:
+            speedups = times[0]*np.divide(nodes[0],times)
+            axes.plot(nodes, speedups, color=c, label=entry)
+            axes.scatter(nodes, speedups, color=c,s=20)
 
     # plot last entry also as circles
-    if strong_scaling: #if dict is not empty
-        axes.scatter(nodes, speedups, color=c)
+    #if strong_scaling: #if dict is not empty
+    #    axes.scatter(nodes, speedups, color=c)
     
     # add ideal scaling line
     axes.plot([1,max_nodes],[1,max_nodes], c=(0.25,0.85,0.25),ls=':', lw=2)
@@ -224,9 +228,9 @@ def plot_execution_time(data, axes=None, omp=0, **kwargs):
         save_plot=True
     for n in dates.keys():
         axes.errorbar(dates[n], times[n], yerr=[errors_min[n],errors_max[n]], fmt='o', markersize=5,
-                     label=str(n)+' nodes', color=colorVals[n])
+                     label=str(n)+' nodes', color=colorVals[n], **kwargs)
         # plot a line from the last point to make comparison easier
-        axes.plot([dates[n][0],dates[n][-1]], [times[n][-1],times[n][-1]], ls=':', lw=1.3, color=colorVals[n], **kwargs)
+        axes.plot([dates[n][0],dates[n][-1]], [times[n][-1],times[n][-1]], ls=':', lw=1.3, color=colorVals[n])
 
     if save_plot:
         axes.set_ylabel('execution time [s]')
@@ -262,10 +266,10 @@ def eurohpc_dashboard(test_name, statistic='time', reso_strong=1024, timescale='
             plot_strong_scaling(data_f, reso_strong, axes=ax,omp=omp)
 
         # filter data to keep
-        #omp=4
-        #data_f = filter_data(data, timescale,omp=omp)
-        #if statistic=='time':
-        #    plot_execution_time(data_f, axes=ax,omp=omp, facecolor='none')
+        omp=1
+        data_f_omp = filter_data(data, timescale,omp=omp)
+        if statistic=='time':
+            plot_execution_time(data_f_omp, axes=ax,omp=omp, markerfacecolor='none', marker='x')
         #    ax.scatter([],[],color='black',label='MPI')
         #    ax.scatter([],[],color='black',facecolor='none',label='OpenMP '+str(omp))
         #elif statistic=='strong':
