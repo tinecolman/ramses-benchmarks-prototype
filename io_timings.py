@@ -116,7 +116,9 @@ def add_data(data, benchmark_dir):
 
 ''' Update the timings with a new benchmark '''
 def update_timings(cluster, benchmark_dir, test_name, branch):
-    benchmark_file = 'data_'+branch+'/timings_'+cluster+'_'+test_name+'.txt'
+    #benchmark_file = 'data_'+branch+'/timings_'+cluster+'_'+test_name+'.txt'
+    # fix dir while developing openmp, for now
+    benchmark_file = 'data_openmp/timings_'+cluster+'_'+test_name+'.txt'
     # load existing data
     data = load_data(benchmark_file)
     # add/update benchmark entry
