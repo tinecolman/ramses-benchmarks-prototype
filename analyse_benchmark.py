@@ -314,20 +314,34 @@ def make_files():
     #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_HEAD_2025-02-27_00717e77/'+test, test) #dev2023-10
     #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_HEAD_2025-02-27_7308417b/'+test, test) #dev2024-10
 
+''' (for testing purposes) add locally stored benchmark results to file '''
+def manually_add():
 
+    bench_home = '/home/tcolman/Dropbox/SPACE/benchmarks_openmp_progress'
+    test='sedov'
+    cluster = 'meluxina'
+
+    update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_openmp_2025-03-17_c766fbfc/'+test, 'openmp')
+    #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_openmp_2025-03-19_c766fbfc/'+test, 'openmp')
+    #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_openmp_2025-03-19_f4f4930a/'+test, 'openmp')
+    #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_openmp_2025-03-19_4b965ce4/'+test, 'openmp_hydro_unigrid')
+
+def test_database():
+    test='sedov'
+    cluster = 'meluxina'
+    benchmark_file = 'data_openmp/timings_'+cluster+'_'+test+'.txt'
+    data = load_data(benchmark_file)
 
 if __name__ == '__main__':
 
     #make_files()
-
-    #eurohpc_dashboard('sedov', statistic='time',  timescale='short')
     #eurohpc_dashboard('sedov', statistic='time',  timescale='long')
-    #eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024, timescale='short')
-    #eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024)
 
     # maybe cool to have the combo weak-strong scaling plot
 
-    eurohpc_dashboard('sedov', statistic='time',  timescale='short')
-    eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024, timescale='short')
-    eurohpc_dashboard('cosmo', statistic='time',  timescale='short')
-    eurohpc_dashboard('cosmo', statistic='strong', reso_strong=1024, timescale='short')
+    #manually_add()
+
+    #eurohpc_dashboard('sedov', statistic='time',  timescale='short')
+    #eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024, timescale='short')
+    #eurohpc_dashboard('cosmo', statistic='time',  timescale='short')
+    #eurohpc_dashboard('cosmo', statistic='strong', reso_strong=1024, timescale='short')

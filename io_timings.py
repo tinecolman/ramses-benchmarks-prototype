@@ -1,7 +1,7 @@
 '''
 Functions to read/write benchmark data to file
 
-The timings are extracted from the logfiles and stored in text files,
+The timings are extracted from the logfiles and stored in JSON files,
 ready to be uploaded to the git.
 The name of the file is: timings_<system>_<testname>.txt
 The file contains a table with several columns:
@@ -10,121 +10,117 @@ The file contains a table with several columns:
 
 import os
 import subprocess
-from collections import OrderedDict
+import json
 
-''' dissect name of the benchmark directory '''
-def get_info_from_dir_name(benchmark_dir):
+# -------- Helper functions -----------
+
+''' Dissect name of the base benchmark directory:
+    benchmark_<branch>_<run date>_<commit>/<testname> '''
+def get_info_from_benchmark_dir_name(benchmark_dir):
     parts = benchmark_dir.split('/')
-    date = parts[-2][-19:-9]
-    commit = parts[-2][-8:]
-    return date, commit
+    test_name = parts[-1]
+    commit = parts[-2][-8:]    # last 8 characters
+    date = parts[-2][-19:-9]   # 10 characters YYYY-MM-DD before commit
+    branch = parts[-2][10:-20] # located between the word benchmark and date
+    return branch, date, commit, test_name
 
-''' get a list of configurations for which the test has been executated '''
-def get_configs(benchmark_dir):
-    configs = []
+''' Dissect name of the benchmark configuration subdirectory:
+    nodes<N>_<resolution>_omp<threads> '''
+def get_info_from_subdir_name(subdir):
+    [nodes, reso, omp] = subdir.split('_')
+    nodes = int(nodes[5:])
+    reso = reso[4:]
+    omp = omp[3:]
+    return nodes, reso, omp
+
+# -------- database IO -----------
+
+''' Write data to disk as a structured JSON list '''
+def write_data(benchmark_file, data):
+    with open(benchmark_file, 'w') as f:
+        json.dump(data, f, indent=4)
+    print("Updated", benchmark_file)
+
+'''' Load previous data from JSON file '''
+def load_data(benchmark_file):
+    try: 
+        with open(benchmark_file, 'r') as f:
+            data= json.load(f)
+    except FileNotFoundError:
+        print(benchmark_file,"not found. No data to load.")
+        data = []
+    return data
+
+def add_data(data, benchmark_dir):
+    """Extract new benchmark data and add it to the dataset efficiently."""
+    branch, date, commit, test_name = get_info_from_benchmark_dir_name(benchmark_dir)
+
     # list subdirectories in benchmark test
     for item in os.listdir(benchmark_dir):
         name = os.path.join(benchmark_dir, item)
         if os.path.isdir(name) and item.startswith('nodes'):
-            # get number of nodes and resolution of config
-            [nodes, reso, omp] = item.split('_')
-            nodes = int(nodes[5:])
-            reso = reso[4:]
-            omp = omp[3:]
-            configs.append((nodes,reso,omp))
-    #sort according to accending number of omp threads, resolution, number of nodes
-    configs = sorted(configs, key=lambda tup: tup[0])
-    configs = sorted(configs, key=lambda tup: tup[1])
-    configs = sorted(configs, key=lambda tup: tup[2])
-    return configs
+            nodes, reso, omp = get_info_from_subdir_name(item)
+            total_times = get_timings_from_log(name)
 
-''' Use grep to get the times from all logfiles in a directory '''
+            new_entry = {
+                "branch": branch,
+                "date": date,
+                "commit": commit,
+                "test": test_name,
+                "nodes": int(nodes),
+                "resolution": reso,
+                "omp_threads": int(omp),
+                "timings": total_times
+            }
+            new_header_keys = sorted(list(new_entry.keys()))
+        
+            # Check if the same entry already exists and update it
+            for entry in data:
+                # check if the same meta data is present
+                old_header_keys = sorted(list(entry.keys()))
+                if new_header_keys != old_header_keys:
+                    continue
+                # check if metadata is the same
+                match = True
+                new_header_keys.remove('timings')
+                for key in new_header_keys:
+                    match = match and (entry[key]==new_entry[key])
+                if match:
+                    # entry exists -> update it by merging lists
+                    entry['timings'] = entry['timings'] + total_times
+                else:
+                    # entry does not exist -> add the new entry
+                    data.append(new_entry)
+
+    return data
+
+def filter_data(data, omp_threads=None, nodes=None, commit=None):
+    """Filter data based on OpenMP threads, number of nodes, or commit hash."""
+    return [entry for entry in data if 
+            (omp_threads is None or entry['omp_threads'] == omp_threads) and
+            (nodes is None or entry['nodes'] == nodes) and
+            (commit is None or entry['commit'] == commit)]
+
+
+
 def get_timings_from_log(run_dir):
+    ''' Use grep to get the times from all logfiles in a directory '''
     subprocess.call("grep --no-filename 'Total elapsed time' {}/*.log".format(run_dir) +" | awk '{print $4}' > total_time.txt", shell=True)
     with open('total_time.txt', 'r') as file:
         total_time = [float(line.strip()) for line in file]
     return total_time
 
-''' load previous data from file into dicts format '''
-def load_data(benchmark_file):
-    data = OrderedDict()
-    n_info=5 #number of columns with benchmark info before actual timings
-
-    try: 
-        with open(benchmark_file, 'r') as f:
-            for line in f:
-                currentline = line.strip().split(',')
-
-                # create benchmark entry if not already in dict
-                entry_name = currentline[1]+'\n'+currentline[0] #commit name + date
-                if entry_name not in data:
-                    data[entry_name] = {}
-
-                # cast times to float
-                if (currentline[n_info]=='[]'):
-                    items = []
-                else:
-                    items = [float(i) for i in (currentline[n_info][1:-2]).strip().split()]
-
-                # add data to entry
-                subentry_name = currentline[2]+' '+currentline[3]+' '+currentline[4] #reso nodes threads
-                data[entry_name][subentry_name] = items
-    except:
-        print(benchmark_file,"not found. No data to load.")
-
-    return data
-
-''' write the data from dicts format into file '''
-def write_data(benchmark_file, data):
-
-    with open(benchmark_file, 'w') as f:
-        for entry in data:
-            date = entry[-10:]
-            commit = entry[:8]
-            for subentry in data[entry]:
-                [reso, nodes, omp] = subentry.split()
-                timings_string = str(data[entry][subentry]).replace(',','')
-                f.write(f"{date},{commit},{reso},{nodes},{omp},{timings_string}\n")
-
-    print("Updated", benchmark_file)
-
-''' add data to the dict '''
-def add_data(data, benchmark_dir):
-
-    date, commit = get_info_from_dir_name(benchmark_dir)
-
-    # check if entry exists
-    entry_name = commit + '\n' + date
-    if entry_name not in data:
-        data[entry_name] = {}
-
-    # get a list of the num_nodes-resolution configurations used
-    configs = get_configs(benchmark_dir)
-
-    # load and store timings for all configurations
-    for (nnodes, reso, omp) in configs:
-        # get times from log
-        subdir_name = 'nodes'+str(nnodes)+'_reso'+str(reso)+'_omp'+str(omp)
-        total_times = get_timings_from_log(benchmark_dir+'/'+subdir_name)
-        # add to dict, overwrite if already exist
-        subentry_name = str(reso)+' '+str(nnodes)+' '+str(omp) #reso nodes omp
-        data[entry_name][subentry_name] = total_times
-
-    #print('Loaded data for benchmark', commit, date)
-    return data
-
 
 ''' Update the timings with a new benchmark '''
-def update_timings(cluster, benchmark_dir, test_name, branch):
-    #benchmark_file = 'data_'+branch+'/timings_'+cluster+'_'+test_name+'.txt'
-    # fix dir while developing openmp, for now
-    benchmark_file = 'data_openmp/timings_'+cluster+'_'+test_name+'.txt'
-    # load existing data
-    data = load_data(benchmark_file)
+def update_timings(cluster, benchmark_dir):
+    branch, date, commit, test_name = get_info_from_benchmark_dir_name(benchmark_dir)
+    database_file = f'data_{branch}/timings_{cluster}_{test_name}.json'
+    # load existing database
+    data = load_data(database_file)
     # add/update benchmark entry
     data = add_data(data, benchmark_dir)
     # update file
-    write_data(benchmark_file, data)
+    write_data(database_file, data)
 
 
 if __name__ == '__main__':
@@ -132,9 +128,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Extract benchmark timings and save to file.")
     parser.add_argument('cluster', help="HPC system on which the benchmark has been run")
-    parser.add_argument('benchmark_dir', help="directory where the benchmarks have been executed")
-    parser.add_argument('test', help="name of the test case")
-    parser.add_argument('branch', help="branch of the tested commit")
+    parser.add_argument('benchmark_dir', help="test directory where the benchmarks have been executed")
     args = parser.parse_args()
 
-    update_timings(args.cluster, args.benchmark_dir, args.test, args.branch)
+    update_timings(args.cluster, args.benchmark_dir)
