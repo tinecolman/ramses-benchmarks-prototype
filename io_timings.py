@@ -66,7 +66,6 @@ def add_data(data, benchmark_dir):
                 "branch": branch,
                 "date": date,
                 "commit": commit,
-                "test": test_name,
                 "nodes": int(nodes),
                 "resolution": reso,
                 "omp_threads": int(omp),
@@ -74,7 +73,7 @@ def add_data(data, benchmark_dir):
             }
             new_header_keys = sorted(list(new_entry.keys()))
         
-            # Check if the same entry already exists and update it
+            '''# Check if the same entry already exists and update it
             for entry in data:
                 # check if the same meta data is present
                 old_header_keys = sorted(list(entry.keys()))
@@ -89,17 +88,17 @@ def add_data(data, benchmark_dir):
                     # entry exists -> update it by merging lists
                     entry['timings'] = entry['timings'] + total_times
                 else:
-                    # entry does not exist -> add the new entry
-                    data.append(new_entry)
+                    # entry does not exist -> add the new entry'''
+            data.append(new_entry)
 
     return data
 
-def filter_data(data, omp_threads=None, nodes=None, commit=None):
+'''def filter_data(data, omp_threads=None, nodes=None, commit=None):
     """Filter data based on OpenMP threads, number of nodes, or commit hash."""
     return [entry for entry in data if 
             (omp_threads is None or entry['omp_threads'] == omp_threads) and
             (nodes is None or entry['nodes'] == nodes) and
-            (commit is None or entry['commit'] == commit)]
+            (commit is None or entry['commit'] == commit)]'''
 
 
 
@@ -114,7 +113,8 @@ def get_timings_from_log(run_dir):
 ''' Update the timings with a new benchmark '''
 def update_timings(cluster, benchmark_dir):
     branch, date, commit, test_name = get_info_from_benchmark_dir_name(benchmark_dir)
-    database_file = f'data_{branch}/timings_{cluster}_{test_name}.json'
+    #database_file = f'data_{branch}/timings_{cluster}_{test_name}.json'
+    database_file = f'data_wip/timings_{cluster}_{test_name}.json'
     # load existing database
     data = load_data(database_file)
     # add/update benchmark entry

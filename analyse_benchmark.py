@@ -318,19 +318,69 @@ def make_files():
 def manually_add():
 
     bench_home = '/home/tcolman/Dropbox/SPACE/benchmarks_openmp_progress'
-    test='sedov'
+    test='cosmo'
     cluster = 'meluxina'
 
-    update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_openmp_2025-03-17_c766fbfc/'+test, 'openmp')
+    #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_openmp_2025-03-17_c766fbfc/'+test)
     #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_openmp_2025-03-19_c766fbfc/'+test, 'openmp')
     #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_openmp_2025-03-19_f4f4930a/'+test, 'openmp')
     #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_openmp_2025-03-19_4b965ce4/'+test, 'openmp_hydro_unigrid')
 
-def test_database():
-    test='sedov'
+    #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_optimise_gauss_seidel_2025-03-21_09fc6b01/'+test)
+    #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_optimise_gauss_seidel_2025-03-21_96a6a41b/'+test)
+    update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_optimise_gauss_seidel_2025-03-21_34bd4a25/'+test)
+
+    test='cosmo_amr'
     cluster = 'meluxina'
-    benchmark_file = 'data_openmp/timings_'+cluster+'_'+test+'.txt'
+    #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_dev_2025-03-21_c766fbfc/'+test)
+    #update_timings(cluster, bench_home+'/'+cluster+'/'+'benchmark_optimise_gauss_seidel_2025-03-21_34bd4a25/'+test)
+
+
+def test_database():
+    reso='1024'
+    test='cosmo'
+    #reso='lvl9-10'
+    #test='cosmo_amr'
+    cluster = 'meluxina'
+    benchmark_file = 'data_wip/timings_'+cluster+'_'+test+'.json'
     data = load_data(benchmark_file)
+    print(data)
+
+    fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(5,4))
+
+    arr_nodes = [1,2,4]
+    for commit in ["c766fbfc", "34bd4a25"]:
+        ar_times = []
+        ar_err_min = []
+        ar_err_max = []
+        for nodes in arr_nodes:
+            # get requested entries
+            filtered_data = [entry for entry in data if 
+                             #(entry['omp_threads'] == 0) and
+                             (entry['resolution'] == reso) and
+                             (entry['nodes'] == nodes) and
+                             (entry['commit'] == commit)]
+            print(filtered_data)
+            # merged timings data
+            times = []
+            for entry in filtered_data:
+                times = times + entry['timings']
+            # process timings
+            time, error_min, error_max = process_times(times)
+            ar_times.append(time)
+            ar_err_min.append(error_min)
+            ar_err_max.append(error_max)
+        print(ar_times)
+        #axes.scatter(arr_nodes, ar_times, label=commit)
+        axes.errorbar(arr_nodes, ar_times, yerr=[ar_err_min,ar_err_max],
+                      fmt='o', markersize=4, label=commit)
+
+    axes.set_ylabel('execution time [s]')
+    axes.set_xscale('log')
+    axes.set_yscale('log')
+    axes.legend()
+    plt.savefig('test.png', bbox_inches='tight', dpi=200)
+    plt.close()
 
 if __name__ == '__main__':
 
@@ -340,6 +390,7 @@ if __name__ == '__main__':
     # maybe cool to have the combo weak-strong scaling plot
 
     #manually_add()
+    test_database()
 
     #eurohpc_dashboard('sedov', statistic='time',  timescale='short')
     #eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024, timescale='short')
