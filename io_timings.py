@@ -11,6 +11,7 @@ The file contains a table with several columns:
 import os
 import subprocess
 import json
+import numpy as np
 
 # -------- Helper functions -----------
 
@@ -20,8 +21,10 @@ def get_info_from_benchmark_dir_name(benchmark_dir):
     parts = benchmark_dir.split('/')
     test_name = parts[-1]
     commit = parts[-2][-8:]    # last 8 characters
-    date = parts[-2][-19:-9]   # 10 characters YYYY-MM-DD before commit
-    branch = parts[-2][10:-20] # located between the word benchmark and date
+    #date = parts[-2][-19:-9]   # 10 characters YYYY-MM-DD before commit
+    #branch = parts[-2][10:-20] # located between the word benchmark and date
+    date = 'xxxx-xx-xx'
+    branch = parts[-2][10:-9]
     return branch, date, commit, test_name
 
 ''' Dissect name of the benchmark configuration subdirectory:
@@ -51,16 +54,19 @@ def load_data(benchmark_file):
         data = []
     return data
 
-def add_data(data, benchmark_dir):
+def add_data(data, benchmark_dir, which='total'):
     """Extract new benchmark data and add it to the dataset efficiently."""
     branch, date, commit, test_name = get_info_from_benchmark_dir_name(benchmark_dir)
+
+    if(not os.path.isdir(benchmark_dir)):
+        return data
 
     # list subdirectories in benchmark test
     for item in os.listdir(benchmark_dir):
         name = os.path.join(benchmark_dir, item)
         if os.path.isdir(name) and item.startswith('nodes'):
             nodes, reso, omp = get_info_from_subdir_name(item)
-            total_times = get_timings_from_log(name)
+            total_times = get_timings_from_log(name, which)
 
             new_entry = {
                 "branch": branch,
@@ -102,13 +108,50 @@ def add_data(data, benchmark_dir):
 
 
 
-def get_timings_from_log(run_dir):
+def get_timings_from_log(run_dir, which='total'):
     ''' Use grep to get the times from all logfiles in a directory '''
-    subprocess.call("grep --no-filename 'Total elapsed time' {}/*.log".format(run_dir) +" | awk '{print $4}' > total_time.txt", shell=True)
-    with open('total_time.txt', 'r') as file:
-        total_time = [float(line.strip()) for line in file]
+    if which=='total':
+        subprocess.call("grep --no-filename 'Total elapsed time' {}/*.log".format(run_dir) +" | awk '{print $4}' > total_time.txt", shell=True)
+        with open('total_time.txt', 'r') as file:
+            total_time = [float(line.strip()) for line in file]
+    else:
+        total_time = get_specific_timer(run_dir, which)
     return total_time
 
+
+def read_timers(logfile):
+    ''' retrieve timer for individual parts of the code from the end of the logfile '''
+    # get timers that are printed inbetween pattern TIMER and TOTAL
+    subprocess.call("awk '/TIMER/{flag=1; next}/TOTAL/{flag=0} flag' " + logfile +" | awk '{print $2}' > indiv_times.txt", shell=True)
+    subprocess.call("awk '/TIMER/{flag=1; next}/TOTAL/{flag=0} flag' " + logfile +" | awk '{print substr($0,91,104)}' | sed 's/ //g' > timer_names.txt", shell=True)
+    # read data and put into dict
+    indiv_times = np.loadtxt('indiv_times.txt')
+    timer_names = np.genfromtxt('timer_names.txt',dtype='str')
+    timings = {}
+    for timer_name, indiv_time in zip(timer_names, indiv_times):
+        timings[timer_name] = indiv_time
+    # add total time
+    #subprocess.call("grep --no-filename 'Total elapsed time' {}".format(logfile) +" | awk '{print $4}' > total_time.txt", shell=True)
+    #total_time = np.loadtxt('total_time.txt', unpack=True)
+    #timings['total'] = total_time
+    return timings
+
+
+def get_specific_timer(test_dir, which):
+    # go through all files
+    all_timers = []
+    for item in os.listdir(test_dir):
+        if item.endswith('.log'):
+            timers = read_timers(os.path.join(test_dir, item))
+            all_timers.append(timers)
+    # get the requested one
+    final_times = []
+    for measurement in all_timers:
+        try:
+            final_times.append(measurement[which])
+        except:
+            continue
+    return final_times
 
 ''' Update the timings with a new benchmark '''
 def update_timings(cluster, benchmark_dir):

@@ -24,7 +24,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.colors as colorsx
 from collections import OrderedDict
-from io_timings import update_timings, load_data
+from io_timings import update_timings, load_data, add_data
 from collections import OrderedDict
 
 
@@ -382,6 +382,150 @@ def test_database():
     plt.savefig('test.png', bbox_inches='tight', dpi=200)
     plt.close()
 
+
+def performance_test_branch_amr_constants():
+
+    bench_home = '/home/tcolman/Dropbox/SPACE/benchmarks_openmp_progress'
+    cluster = 'meluxina'
+    arr_nodes = [1,2,4]
+
+    data = []
+    for test,reso in zip(['cosmo','cosmo_amr'],['1024','lvl9-10']):
+
+        # load only specific data
+        data = add_data(data, bench_home+'/'+cluster+'/'+'benchmark_dev_2025-03-24_c766fbfc/'+test)
+        data = add_data(data, bench_home+'/'+cluster+'/'+'benchmark_amr_constants_2025-03-24_13b21384/'+test)
+
+        fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(5,4))
+
+        for commit,branch in zip(["c766fbfc", "13b21384"],["dev","amr_constants"]):
+            ar_times = []
+            ar_err_min = []
+            ar_err_max = []
+            for nodes in arr_nodes:
+                # get requested entries
+                filtered_data = [entry for entry in data if 
+                                (entry['branch'] == branch) and
+                                (entry['resolution'] == reso) and
+                                (entry['nodes'] == nodes) and
+                                (entry['commit'] == commit)]
+                # merged timings data
+                times = []
+                for entry in filtered_data:
+                    times = times + entry['timings']
+                # process timings
+                time, error_min, error_max = process_times(times)
+                ar_times.append(time)
+                ar_err_min.append(error_min)
+                ar_err_max.append(error_max)
+            #axes.scatter(arr_nodes, ar_times, label=commit)
+            axes.errorbar(arr_nodes, ar_times, yerr=[ar_err_min,ar_err_max],
+                        fmt='o', markersize=4, label=branch)
+            print(ar_times)
+
+        axes.set_ylabel('execution time [s]')
+        axes.set_xscale('log')
+        axes.set_yscale('log')
+        axes.legend()
+        plt.savefig(f'performance_{test}_branch_amr_constants.png', bbox_inches='tight', dpi=200)
+        plt.close()
+
+
+
+def performance_test_branch_openmp_cosmo():
+
+    bench_home = '/home/tcolman/Dropbox/SPACE/benchmarks_openmp_progress'
+    cluster = 'meluxina'
+    arr_nodes = [1,2,4]
+
+    data = []
+    for test,reso in zip(['cosmo','cosmo_amr'],['1024','lvl9-10']):
+
+        # load only specific data
+        data = add_data(data, bench_home+'/'+cluster+'/'+'benchmark_dev_2025-03-24_c766fbfc/'+test)
+        data = add_data(data, bench_home+'/'+cluster+'/'+'benchmark_openmp_cosmo_2025-03-26_3265b938/'+test)
+
+        fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(5,4))
+
+        for commit,branch in zip(["c766fbfc", "3265b938"],["dev","openmp_cosmo"]):
+            ar_times = []
+            ar_err_min = []
+            ar_err_max = []
+            for nodes in arr_nodes:
+                # get requested entries
+                filtered_data = [entry for entry in data if 
+                                (entry['branch'] == branch) and
+                                (entry['resolution'] == reso) and
+                                (entry['nodes'] == nodes) and
+                                (entry['commit'] == commit)]
+                # merged timings data
+                times = []
+                for entry in filtered_data:
+                    times = times + entry['timings']
+                # process timings
+                time, error_min, error_max = process_times(times)
+                ar_times.append(time)
+                ar_err_min.append(error_min)
+                ar_err_max.append(error_max)
+            #axes.scatter(arr_nodes, ar_times, label=commit)
+            axes.errorbar(arr_nodes, ar_times, yerr=[ar_err_min,ar_err_max],
+                        fmt='o', markersize=4, label=branch)
+            print(ar_times)
+
+        axes.set_ylabel('execution time [s]')
+        axes.set_xscale('log')
+        axes.set_yscale('log')
+        axes.legend()
+        plt.savefig(f'performance_{test}_branch_{branch}.png', bbox_inches='tight', dpi=200)
+        plt.close()
+
+def performance_test_iskip():
+
+    bench_home = '/home/tcolman/Dropbox/SPACE/benchmarks_openmp_progress'
+    cluster = 'meluxina'
+    arr_nodes = [1,2,4,8]
+
+    data = []
+    for test,reso in zip(['cosmo','cosmo_amr'],['1024','lvl9-10']):
+
+        # load only specific data
+        data = add_data(data, bench_home+'/'+cluster+'/'+'benchmark_dev_2025-03-24_c766fbfc/'+test)
+        data = add_data(data, bench_home+'/'+cluster+'/'+'benchmark_one_iskip_for_all_2025-03-29_bf9df35e/'+test)
+
+        fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(5,4))
+
+        for commit,branch in zip(["c766fbfc", "bf9df35e"],["dev","one_iskip_for_all"]):
+            ar_times = []
+            ar_err_min = []
+            ar_err_max = []
+            for nodes in arr_nodes:
+                # get requested entries
+                filtered_data = [entry for entry in data if 
+                                (entry['branch'] == branch) and
+                                (entry['resolution'] == reso) and
+                                (entry['nodes'] == nodes) and
+                                (entry['commit'] == commit)]
+                # merged timings data
+                times = []
+                for entry in filtered_data:
+                    times = times + entry['timings']
+                # process timings
+                time, error_min, error_max = process_times(times)
+                ar_times.append(time)
+                ar_err_min.append(error_min)
+                ar_err_max.append(error_max)
+            #axes.scatter(arr_nodes, ar_times, label=commit)
+            axes.errorbar(arr_nodes, ar_times, yerr=[ar_err_min,ar_err_max],
+                        fmt='o', markersize=4, label=branch)
+            print(ar_times)
+
+        axes.set_ylabel('execution time [s]')
+        axes.set_xscale('log')
+        axes.set_yscale('log')
+        axes.legend()
+        plt.savefig(f'performance_{test}_branch_{branch}.png', bbox_inches='tight', dpi=200)
+        plt.close()
+
 if __name__ == '__main__':
 
     #make_files()
@@ -390,9 +534,14 @@ if __name__ == '__main__':
     # maybe cool to have the combo weak-strong scaling plot
 
     #manually_add()
-    test_database()
+    #test_database()
 
     #eurohpc_dashboard('sedov', statistic='time',  timescale='short')
     #eurohpc_dashboard('sedov', statistic='strong', reso_strong=1024, timescale='short')
     #eurohpc_dashboard('cosmo', statistic='time',  timescale='short')
     #eurohpc_dashboard('cosmo', statistic='strong', reso_strong=1024, timescale='short')
+
+
+    #performance_test_branch_amr_constants()
+    #performance_test_branch_openmp_cosmo()
+    performance_test_iskip()
