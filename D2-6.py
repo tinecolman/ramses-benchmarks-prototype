@@ -25,6 +25,21 @@ def load_data_test_refactoring(test, cluster='meluxina', timer='total'):
     return data, mapping_commits
 
 
+def load_dat_openmp(test, cluster='meluxina', timer='total'):
+    bench_home = '/home/tcolman/Dropbox/SPACE/DATA_ARCHIVE'
+
+    data = []
+    mapping_commits = {}
+
+    # full openMP implemenation of sedov, as mushed to ramses-romain
+    #data = add_data(data, bench_home+'/'+cluster+'/'+'benchmark_openmp_hydro_bis_a0a34a7f/'+test, which=timer)
+
+    # full openMP implemenation of multigrid for cosmo
+    data = add_data(data, bench_home+'/'+cluster+'/'+'benchmark_openmp_cosmo_0c73de54/'+test, which=timer)
+
+    return data, mapping_commits
+
+
 ''' Get median time and error bars from the gathered total times printed in the log files '''
 def process_times(times):
     if len(times)>0:
@@ -40,7 +55,55 @@ def process_times(times):
 
 
 ''' for making plots for PR'''
-def test_refactoring():
+def make_table_openmp():
+
+    ''' ----- BENCHMARK SETTINGS ----- '''
+
+    cluster = 'meluxina'
+    arr_nodes = [1,2,4,8,16,32,64]
+    test='cosmo'
+    reso='1024'
+
+    data, mapping_commits = load_dat_openmp(test, cluster='meluxina', timer='poisson-rho')
+    print(data)
+
+    ''' ----- PLOT SETTING ----- '''
+
+    # create colors
+    cmap = plt.get_cmap('managua')
+    cNorm  = colorsx.LogNorm(vmin=1, vmax=max(arr_nodes))
+    colorVals = {}
+    for val in arr_nodes:#
+        colorVals[val] = cmap(cNorm(val))
+    #colorVals[1] = 'black'
+
+    fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(5,4))
+
+    ''' ----- MAKE FIGURE ----- '''
+
+    for nodes in arr_nodes:
+        times = []
+        for omp in [0,2,4,8]:
+            for entry in data:
+                if entry['resolution']!=reso:
+                    continue
+                if entry['nodes']!=nodes:
+                    continue
+                if entry['omp_threads']!=omp:
+                    continue
+                # reduce time data
+                time, error_min, error_max = process_times(entry['timings'])
+                times.append(float(time))
+
+        # nodes MPI 2th 4th 8thr gain
+        diff = (-1)*(min(times[1],times[2],times[3]) - times[0])/times[0] * 100
+        space_report_string = '{} & {:.3f} & {:.3f} & {:.3f}& {:.3f}& {:.1f} \\\\ \\hline'.format(str(nodes).rjust(2),times[0],times[1],times[2],times[3],diff)
+        print(space_report_string)
+
+
+
+''' for making plots for PR'''
+def make_table():
 
     ''' ----- BENCHMARK SETTINGS ----- '''
 
@@ -103,4 +166,5 @@ def test_refactoring():
 
 if __name__ == '__main__':
 
-    test_refactoring()
+    make_table_openmp()
+    #make_table()
